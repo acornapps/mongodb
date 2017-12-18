@@ -1,0 +1,112 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{.AddonName}}
+  labels:
+    app: {{.AppName}}
+    apps: {{.AddonName}}
+type: Opaque
+data:
+  mongodb-root-password: YXBwc1Jvb3RQd2Q=
+  mongodb-password: YXBwc1B3ZA==
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.AddonName}}
+  labels:
+    app: {{.AppName}}
+    apps: {{.AddonName}}
+spec:
+  type: ClusterIP 
+  ports:
+  - name: mongodb
+    port: 27017
+    protocol: TCP
+    targetPort: 27017
+  selector:
+    apps: {{.AddonName}}
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{.AddonName}}-mongodb-pv-claim
+  labels:
+    app: {{.AppName}}
+    apps: {{.AddonName}}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: "standard"
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{.AddonName}}
+  labels:
+    app: {{.AppName}}
+    apps: {{.AddonName}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      apps: {{.AddonName}}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        apps: {{.AddonName}}
+    spec:
+      containers:
+      - name: {{.AddonName}}
+        image: "bitnami/mongodb:3.6.0-r0"
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        env:
+        - name: MONGODB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{.AddonName}}
+              key: mongodb-root-password
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{.AddonName}}
+              key: mongodb-password
+        - name: MYSQL_USER
+          value: apps-user
+        - name: MONGODB_DATABASE
+          value: apps-db
+        ports:
+        - name: mongodb
+          containerPort: 27017
+        livenessProbe:
+          exec:
+            command:
+            - mongo
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command:
+            - mongo
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{.AddonName}}-mongodb-pv-claim
