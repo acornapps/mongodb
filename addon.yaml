@@ -80,10 +80,10 @@ spec:
             secretKeyRef:
               name: {{.AddonName}}
               key: mongodb-password
-        - name: MYSQL_USER
-          value: apps-user
+        - name: MONGODB_USERNAME
+          value: apps
         - name: MONGODB_DATABASE
-          value: apps-db
+          value: apps_db
         ports:
         - name: mongodb
           containerPort: 27017
