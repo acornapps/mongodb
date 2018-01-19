@@ -50,7 +50,7 @@ metadata:
     app: {{.AppName}}
     apps: {{.AddonName}}
 spec:
-  replicas: 1
+  replicas: {{.Replicas}}
   selector:
     matchLabels:
       apps: {{.AddonName}}
@@ -63,12 +63,15 @@ spec:
     spec:
       containers:
       - name: {{.AddonName}}
-        image: "bitnami/mongodb:3.6.0-r0"
+        image: {{.Image}}
         imagePullPolicy: IfNotPresent
         resources:
+          limits:
+            cpu: {{.LimitCpu}}
+            memory: {{.LimitMemory}}
           requests:
-            cpu: 100m
-            memory: 256Mi
+            cpu: {{.RequestCpu}}
+            memory: {{.RequestMemory}}
         env:
         - name: MONGODB_ROOT_PASSWORD
           valueFrom:
